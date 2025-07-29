@@ -1,2 +1,34 @@
+Steps
+01 Setup
+02 Database (Neon, Drizzle ORM)
+03 Auth Setup (Better Auth)
+04 Auth UI
+05 Auth Socials
+06 Dashboard Sidebar
+07 Dashboard Navbar
+08 tRPC Setup
+09 Agents Setup
+10 Responsive Dialog
+11 Agents Form
+12 Agents Data Table
+13 Agents Filters
+14 Agent Page
+15 Agent Update Delete
+16 Meetings Setup
+17 Meetings Form
+18 Meetings Data Table
+19 Meetings Filters
+20 Meeting Page
+21 Meeting Variants
+22 Video Call (Stream)
+23 Connecting Agents (Stream, OpenAI)
+24 Background Jobs (Inngest, OpenAI)
+25 Completed State
+26 Transcript Chat  & Newsletter
+27 Payments
+28 Bugs
+29 Deployment
+
+Commands
 npx shadcn@2.5.0 init
 npx shadcn@2.5.0 add --all

@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 
 
 export default function Home() {
+    const {data: session} = authClient.useSession();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
@@ -25,6 +26,14 @@ export default function Home() {
                     window.alert("User created successfully");
                 }
             })
+    }
+    if (session) {
+        return (
+            <div className={'p-4 flex flex-col gap-4 max-w-md mx-auto'}>
+                <Label className="text-2xl">Welcome, {session.user.name}</Label>
+                <Button onClick={() => authClient.signOut()}>Sign Out</Button>
+            </div>
+        )
     }
 
   return (
