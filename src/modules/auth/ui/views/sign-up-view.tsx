@@ -10,8 +10,9 @@ import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/
 import {OctagonAlertIcon} from "lucide-react";
 import Link from "next/link";
 import {authClient} from "@/lib/auth-client";
-import {useRouter} from "next/navigation";
 import {useState} from "react";
+import {useRouter} from "next/navigation";
+import {FaGithub, FaGoogle} from "react-icons/fa";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -44,11 +45,30 @@ export const SignUpView = () => {
                 name: data.name,
                 email: data.email,
                 password: data.password,
+                callbackURL:'/',
             },
             {
                 onSuccess() {
                     setPending(false);
                     router.push('/');
+                },
+                onError: ({ error }) => {
+                    setError(error.message);
+                }
+            }
+        );
+    };
+    const onSocial = (provider:"github" | "google") => {
+        setError(null);
+        setPending(true);
+        authClient.signIn.social(
+            {
+                provider: provider,
+                callbackURL: '/',
+            },
+            {
+                onSuccess() {
+                    setPending(false);
                 },
                 onError: ({ error }) => {
                     setError(error.message);
@@ -154,7 +174,7 @@ export const SignUpView = () => {
                                     disabled={pending}
                                     className={'w-full'}
                                     type={'submit'}>
-                                    Sign In
+                                    Sign Up
                                 </Button>
                                 <div className={'after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 ' +
                                     'after:flex after:items-center after:border-t'}>
@@ -163,11 +183,13 @@ export const SignUpView = () => {
                                 </span>
                                 </div>
                                 <div className={'grid grid-cols-2 gap-4'}>
-                                    <Button disabled={pending} variant={'outline'} className={'w-full'} type={'button'}>
-                                        Google
+                                    <Button disabled={pending} variant={'outline'} className={'w-full'} type={'button'}
+                                            onClick={() => {onSocial("google")}}>
+                                        <FaGoogle />
                                     </Button>
-                                    <Button disabled={pending} variant={'outline'} className={'w-full'} type={'button'}>
-                                        Github
+                                    <Button disabled={pending} variant={'outline'} className={'w-full'} type={'button'}
+                                            onClick={() => {onSocial("github")}}>
+                                        <FaGithub />
                                     </Button>
                                 </div>
                                 <div className={'text-center text-sm'}>
