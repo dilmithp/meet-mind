@@ -26,7 +26,7 @@ export const AgentForm = ({onSuccess, onCancel, initialValues}: AgentFromProps) 
         trpc.agents.create.mutationOptions({
             onSuccess: async () => {
                 await queryClient.invalidateQueries(
-                    trpc.agents.getMany.queryOptions(),
+                    trpc.agents.getMany.queryOptions({}),
                 );
 
                 if(initialValues?.id){
@@ -74,8 +74,8 @@ export const AgentForm = ({onSuccess, onCancel, initialValues}: AgentFromProps) 
                             </FormControl>
                             <FormMessage />
                         </FormItem>
-                        )}
-                    />
+                    )}
+                />
                 <FormField
                     name={'instructions'}
                     control={form.control}
