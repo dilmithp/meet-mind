@@ -20,7 +20,7 @@ interface Props {
 export const AgentIdView = ({agentId}:Props) => {
     const trpc = useTRPC();
     const router = useRouter();
-    const[updateAgentDialogOpnen, setUpdateAgentDialogOpen] = useState(false);
+    const[updateAgentDialogOpen, setUpdateAgentDialogOpen] = useState(false);
     const {data} = useSuspenseQuery(trpc.agents.getOne.queryOptions({id: agentId}));
     const queryClient = useQueryClient();
     const removeAgent = useMutation(
@@ -50,7 +50,7 @@ export const AgentIdView = ({agentId}:Props) => {
         <>
             <RemoveConfirmation />
             <UpdateAgentDialog
-                open={updateAgentDialogOpnen}
+                open={updateAgentDialogOpen}
                 onOpenChange={setUpdateAgentDialogOpen}
                 initialValues={data}
             />
