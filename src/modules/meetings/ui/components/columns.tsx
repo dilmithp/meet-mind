@@ -12,19 +12,11 @@ import {
 } from "lucide-react";
 import {Badge} from "@/components/ui/badge";
 import {MeetingGetMany} from "@/modules/meetings/types";
-import humanizeDuration from "humanize-duration";
 import {format} from "date-fns";
-import {cn} from "@/lib/utils";
+import {cn, formatDuration} from "@/lib/utils";
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
 
-function formatDuration(seconds:number){
-    return humanizeDuration(seconds * 1000, {
-        largest:1,
-        round: true,
-        units: ["h", "m", "s"],
-    });
-}
 const statusIconMap = {
     upcoming: ClockArrowUpIcon,
     active: LoaderIcon,
@@ -32,7 +24,7 @@ const statusIconMap = {
     cancelled: CircleXIcon,
     processing: LoaderIcon,
 }
-const ststusColorMap = {
+const statusColorMap = {
     upcoming: "bg-yellow-500/20 text-yellow-800 border-yellow-800/5",
     active: "bg-blue-500/20 text-blue-800 border-blue-800/5",
     completed: "bg-emerald-500/20 text-emerald-800 border-emerald-800/5",
@@ -74,7 +66,7 @@ export const columns: ColumnDef<MeetingGetMany[number]>[] = [
             return (
                 <Badge variant={'outline'}
                     className={cn("capitalize [&>svg]:size-4 text-muted-foreground",
-                    ststusColorMap[row.original.status as keyof typeof ststusColorMap])
+                    statusColorMap[row.original.status as keyof typeof statusColorMap])
                 }
                 >
                     <Icon
