@@ -43,8 +43,8 @@ const AllowBrowserPermissions = () => {
 
 export const CallLobby = ({ onJoin }: Props) => {
     const {useCameraState, useMicrophoneState} = useCallStateHooks();
-    const {hasBrowserPermission: hasCameraPermission} = useCameraState;
-    const {hasBrowserPermission: hasMicrophonePermission} = useMicrophoneState;
+    const {hasBrowserPermission: hasCameraPermission} = useCameraState();
+    const {hasBrowserPermission: hasMicrophonePermission} = useMicrophoneState();
 
     const hasBrowserPermission = hasCameraPermission && hasMicrophonePermission;
 

@@ -13,7 +13,6 @@ import {useState} from "react";
 import {CommandSelect} from "@/components/command-select";
 import {GeneratedAvatar} from "@/components/generated-avatar";
 import {NewAgentDialog} from "@/modules/agents/ui/components/new-agent-dialog";
-import {router} from "next/client";
 import {useRouter} from "next/navigation";
 
 interface MeetingFromProps {
