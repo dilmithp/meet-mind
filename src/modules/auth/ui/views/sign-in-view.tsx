@@ -77,7 +77,7 @@ export const SignInView = () => {
                         <div className={'flex flex-col gap-6'}>
                             <div className={'flex flex-col items-center text-center'}>
                                 <h1 className={'font-bold text-2xl'}>
-                                    Welcome to Mind AI
+                                    Welcome to Meet Mind AI
                                 </h1>
                                 <p className={'text-muted-foreground text-balance'}>
                                     Login to your account to continue

@@ -1,16 +1,108 @@
 import {createTRPCRouter, protectedProcedure} from "@/trpc/init";
 import {db} from "@/db";
-import {agent, meetings} from "@/db/schema";
+import {agent, meetings, user} from "@/db/schema";
 import {z} from "zod";
-import {and, count, desc, eq, getTableColumns, ilike, InferInsertModel, sql} from "drizzle-orm";
+import {and, count, desc, eq, getTableColumns, ilike, inArray, InferInsertModel, sql} from "drizzle-orm";
 import {DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE} from "@/constants";
 import {TRPCError} from "@trpc/server";
 import {meetingsInsertSchema, meetingsUpdateSchema} from "@/modules/meetings/schemas";
-import {MeetingStatus} from "@/modules/meetings/types";
+import {MeetingStatus, StreamTranscriptItem} from "@/modules/meetings/types";
 import {streamVideo} from "@/lib/stream-video";
 import {generateAvatarUri} from "@/lib/avatar";
+import JSONL from "jsonl-parse-stringify";
+import {streamChat} from "@/lib/stream-chat";
 
 export const meetingsRouter = createTRPCRouter({
+    generateChatToken: protectedProcedure.mutation(async ({ctx}) => {
+        const token = streamChat.createToken(ctx.auth.user.id);
+        await streamChat.upsertUsers([{
+            id: ctx.auth.user.id,
+            role: 'admin',
+        }]);
+        return token;
+    }),
+    getTranscript: protectedProcedure
+        .input(z.object({id: z.string()}))
+        .query(async ({input, ctx}) => {
+            const[existingMeeting] = await db
+                .select()
+                .from(meetings)
+                .where(
+                    and(eq(meetings.id, input.id), eq(meetings.userId, ctx.auth.user.id))
+                );
+
+            if(!existingMeeting) {
+                throw new TRPCError({code: 'NOT_FOUND', message: 'Meeting not found'});
+            }
+
+            if(!existingMeeting.transcriptUrl){
+                return [];
+            }
+
+            const transcript = await fetch(existingMeeting.transcriptUrl)
+                .then((res) => res.text())
+                .then((text) => JSONL.parse<StreamTranscriptItem>(text))
+                .catch(() => {
+                    return [];
+                });
+
+            const speakerIds = [
+                ...new Set(transcript.map((item) => item.speaker_Id))
+            ];
+
+            const userSpeakers = await db
+                .select()
+                .from(user)
+                .where(inArray(user.id, speakerIds))
+                .then((users) =>
+                    users.map((user) =>({
+                        ...user,
+                        image:
+                            user.image ??
+                            generateAvatarUri({seed: user.name, variant: "initials"}),
+                    }))
+                );
+
+            const agentSpeakers = await db
+                .select()
+                .from(agent)
+                .where(inArray(agent.id, speakerIds))
+                .then((agents) =>
+                    agents.map((agent) => ({
+                        ...agent,
+                        image: generateAvatarUri({seed: agent.name, variant: "botttsNeutral"}),
+                    }))
+                );
+
+            const speakers = [...userSpeakers, ...agentSpeakers];
+            const transcriptWithSpeakers = transcript.map((item) => {
+                const speaker = speakers.find(
+                    (speaker) => speaker.id === item.speaker_Id
+                );
+
+                if(!speaker) {
+                    return {
+                        ...item,
+                        user:{
+                            name: "Unknown",
+                            image: generateAvatarUri({
+                                seed: "Unknown",
+                                variant: "initials",
+                            })
+                        }
+                    }
+                }
+
+                return {
+                    ...item,
+                    user: {
+                        name: speaker.name,
+                        image: speaker.image,
+                    },
+                };
+            })
+            return transcriptWithSpeakers;
+        }),
     generateToken: protectedProcedure.mutation(async ({ctx}) => {
         await streamVideo.upsertUsers([
             {
