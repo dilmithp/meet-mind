@@ -1,6 +1,6 @@
 "use client";
 import {Card, CardContent} from "@/components/ui/card";
-import {refine, z} from "zod";
+import { z } from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
@@ -9,6 +9,7 @@ import {useForm} from "react-hook-form";
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
 import {OctagonAlertIcon} from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import {authClient} from "@/lib/auth-client";
 import {useState} from "react";
 import {useRouter} from "next/navigation";
@@ -20,10 +21,10 @@ const formSchema = z.object({
     password: z.string().min(1, "Password is required"),
     confirmPassword: z.string().min(1, "Password is required"),
 })
-.refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-})
+    .refine((data) => data.password === data.confirmPassword, {
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
+    })
 export const SignUpView = () => {
     const router = useRouter();
     const [error, setError] = useState<string | null>(null);
@@ -204,7 +205,7 @@ export const SignUpView = () => {
                     </Form>
 
                     <div className={'bg-radial from-sidebar-accent to-sidebar relative hidden md:flex flex-col gap-y-4 items-center justify-center'}>
-                        <img src={'/logo.svg'} alt={'Mind AI Logo'} className={'h-[92px] w-[92px]'} />
+                        <Image src={'/logo.svg'} alt={'Mind AI Logo'} width={92} height={92} />
                         <p className={'text-2xl font-semibold text-white'}>Meet Mind AI</p>
                     </div>
                 </CardContent>
