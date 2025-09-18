@@ -1,5 +1,7 @@
 import {pgTable, text, timestamp, boolean, pgEnum} from "drizzle-orm/pg-core";
 import {nanoid} from "nanoid";
+import { integer, uuid } from 'drizzle-orm/pg-core';
+
 export const user = pgTable("user", {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
@@ -87,3 +89,19 @@ export const meetings = pgTable("meetings", {
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow()
 });
+
+export const orders = pgTable('orders', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    customerName: text('customer_name').notNull(),
+    customerEmail: text('customer_email').notNull(),
+    productName: text('product_name').notNull(),
+    amount: integer('amount').notNull(), // in cents
+    status: text('status', { enum: ['pending', 'completed', 'cancelled'] }).notNull().default('pending'),
+    paymentMethod: text('payment_method'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export type Order = typeof orders.$inferSelect;
+export type OrderInsert = typeof orders.$inferInsert;
