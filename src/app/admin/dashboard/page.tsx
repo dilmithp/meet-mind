@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
+import {Plus, Edit, Trash2, RefreshCw, BarChart3} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -192,6 +192,13 @@ export default function AdminDashboard() {
                     <h1 className="text-2xl font-bold">Order Management System</h1>
                     <div className="flex items-center gap-2">
                         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                            <Button
+                                variant="outline"
+                                onClick={() => router.push('/admin/reports')}
+                            >
+                                <BarChart3 className="w-4 h-4 mr-2" />
+                                Reports
+                            </Button>
                             <DialogTrigger asChild>
                                 <Button>
                                     <Plus className="w-4 h-4 mr-2" />
