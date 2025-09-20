@@ -1,5 +1,7 @@
 import {pgTable, text, timestamp, boolean, pgEnum} from "drizzle-orm/pg-core";
 import {nanoid} from "nanoid";
+import { integer, uuid } from 'drizzle-orm/pg-core';
+
 export const user = pgTable("user", {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
@@ -87,3 +89,47 @@ export const meetings = pgTable("meetings", {
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow()
 });
+
+export const orders = pgTable('orders', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    customerName: text('customer_name').notNull(),
+    customerEmail: text('customer_email').notNull(),
+    productName: text('product_name').notNull(),
+    amount: integer('amount').notNull(), // in cents
+    status: text('status', { enum: ['pending', 'completed', 'cancelled'] }).notNull().default('pending'),
+    paymentMethod: text('payment_method'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export type Order = typeof orders.$inferSelect;
+export type OrderInsert = typeof orders.$inferInsert;
+
+export const payments = pgTable('payments', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    polarPaymentId: text('polar_payment_id').unique(),
+    polarOrderId: text('polar_order_id'),
+    polarCustomerId: text('polar_customer_id'),
+    customerName: text('customer_name').notNull(),
+    customerEmail: text('customer_email').notNull(),
+    amount: integer('amount').notNull(), // in cents
+    currency: text('currency').default('USD'),
+    status: text('status', {
+        enum: ['pending', 'processing', 'succeeded', 'failed', 'cancelled', 'refunded']
+    }).notNull().default('pending'),
+    paymentMethod: text('payment_method'),
+    paymentIntentId: text('payment_intent_id'),
+    subscriptionId: text('subscription_id'),
+    productName: text('product_name'),
+    metadata: text('metadata'), // JSON string
+    polarWebhookData: text('polar_webhook_data'), // Store raw webhook data
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+    syncedFromPolar: boolean('synced_from_polar').default(false),
+    lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
+});
+
+export type Payment = typeof payments.$inferSelect;
+export type PaymentInsert = typeof payments.$inferInsert;
