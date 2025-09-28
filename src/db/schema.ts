@@ -133,3 +133,19 @@ export const payments = pgTable('payments', {
 
 export type Payment = typeof payments.$inferSelect;
 export type PaymentInsert = typeof payments.$inferInsert;
+
+export const transcriptNote = pgTable("transcript_note", {
+    id: text('id')
+        .primaryKey()
+        .$defaultFn(() => nanoid()),
+    meetingId: text('meeting_id')
+        .notNull()
+        .references(() => meetings.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+        .notNull()
+        .references(() => user.id, { onDelete: 'cascade' }),
+    note: text('note').notNull(),
+    email: text('email').notNull(),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow()
+});
