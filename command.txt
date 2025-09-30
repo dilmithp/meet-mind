@@ -1,3 +1,7 @@
 npx inngest-cli@1.6.2 dev
 ngrok http --url=acaudal-billie-nonfictively.ngrok-free.app 3000
 https://seriously-included-bluejay.ngrok-free.app
+
+tariffless-monocularly-toshia.ngrok-free.dev
+
+ngrok http --url=tariffless-monocularly-toshia.ngrok-free.dev 3000

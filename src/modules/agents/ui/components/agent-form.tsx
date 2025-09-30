@@ -12,12 +12,26 @@ import {Textarea} from "@/components/ui/textarea";
 import {Button} from "@/components/ui/button";
 import {toast} from "sonner";
 import {useRouter} from "next/navigation";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 
 interface AgentFromProps {
     onSuccess?: () => void;
     onCancel?: () => void;
     initialValues?: AgentGetOne;
 };
+
+const AVAILABLE_MODELS = [
+    "gpt-4-turbo",
+    "gpt-3.5-turbo",
+    "claude-3-opus",
+    "gemini-1.5-pro"
+] as const;
+
+// 1. We create a NEW schema HERE, only for this form.
+const agentFormSchema = agentsInsertSchema.extend({
+    model: z.enum(AVAILABLE_MODELS)
+});
+
 
 export const AgentForm = ({onSuccess, onCancel, initialValues}: AgentFromProps) => {
     const trpc = useTRPC();
@@ -30,7 +44,6 @@ export const AgentForm = ({onSuccess, onCancel, initialValues}: AgentFromProps) 
                 await queryClient.invalidateQueries(
                     trpc.agents.getMany.queryOptions({}),
                 );
-
                 await queryClient.invalidateQueries(
                     trpc.premium.getFreeUsage.queryOptions(),
                 );
@@ -38,7 +51,6 @@ export const AgentForm = ({onSuccess, onCancel, initialValues}: AgentFromProps) 
             },
             onError: (error) => {
                 toast.error(error.message);
-
                 if(error.data?.code === "FORBIDDEN"){
                     router.push('/upgrade')
                 }
@@ -51,7 +63,6 @@ export const AgentForm = ({onSuccess, onCancel, initialValues}: AgentFromProps) 
                 await queryClient.invalidateQueries(
                     trpc.agents.getMany.queryOptions({}),
                 );
-
                 if(initialValues?.id){
                     await queryClient.invalidateQueries(
                         trpc.agents.getOne.queryOptions({id: initialValues.id}),
@@ -64,23 +75,34 @@ export const AgentForm = ({onSuccess, onCancel, initialValues}: AgentFromProps) 
             },
         }),
     );
-    const form = useForm<z.infer<typeof agentsInsertSchema>>({
-        resolver: zodResolver(agentsInsertSchema),
+
+    // 2. We use our NEW form-only schema here.
+    const form = useForm<z.infer<typeof agentFormSchema>>({
+        resolver: zodResolver(agentFormSchema),
+        // 3. This permanently fixes the 'model' does not exist error.
         defaultValues: {
             name: initialValues?.name ?? "",
             instructions: initialValues?.instructions ?? "",
+            model: AVAILABLE_MODELS[0],
         },
     });
     const isEdit = !!initialValues?.id;
     const isPending = createAgent.isPending || updateAgent.isPending;
 
-    const onSubmit = (values: z.infer<typeof agentsInsertSchema>) => {
+
+    const onSubmit = (values: z.infer<typeof agentFormSchema>) => {
+        const valuesForBackend = {
+            name: values.name,
+            instructions: values.instructions,
+        };
+
         if (isEdit) {
             updateAgent.mutate({
-                ...values, id: initialValues.id
+                ...valuesForBackend,
+                id: initialValues.id
             });
-        }else {
-            createAgent.mutate(values);
+        } else {
+            createAgent.mutate(valuesForBackend);
         }
     }
 
@@ -95,12 +117,38 @@ export const AgentForm = ({onSuccess, onCancel, initialValues}: AgentFromProps) 
                         <FormItem>
                             <FormLabel>Name</FormLabel>
                             <FormControl>
-                                <Input {...field} placeholder={'e.g: Math Help'}/>
+                                <Input {...field} placeholder={'e.g: Math Helper'}/>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
+
+                <FormField
+                    control={form.control}
+                    name="model"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Model</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a model" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {AVAILABLE_MODELS.map((model) => (
+                                        <SelectItem key={model} value={model}>
+                                            {model}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
                 <FormField
                     name={'instructions'}
                     control={form.control}
@@ -108,7 +156,7 @@ export const AgentForm = ({onSuccess, onCancel, initialValues}: AgentFromProps) 
                         <FormItem>
                             <FormLabel>Instructions</FormLabel>
                             <FormControl>
-                                <Textarea {...field} placeholder={'You are a helpful math assistant that can answer questions and help with task'}/>
+                                <Textarea {...field} placeholder={'You are a helpful math assistant that can answer questions and help with tasks.'}/>
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -128,6 +176,7 @@ export const AgentForm = ({onSuccess, onCancel, initialValues}: AgentFromProps) 
                     <Button
                         disabled={isPending}
                         type={'submit'}
+                        className={'ml-auto'}
                     >
                         {isEdit ? "Update Agent" : "Create Agent"}
                     </Button>
