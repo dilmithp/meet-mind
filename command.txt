@@ -4,4 +4,4 @@ https://seriously-included-bluejay.ngrok-free.app
 
 tariffless-monocularly-toshia.ngrok-free.dev
 
-ngrok http --url=tariffless-monocularly-toshia.ngrok-free.dev 3000
+ngrok http --url=seriously-included-bluejay.ngrok-free.app 3000

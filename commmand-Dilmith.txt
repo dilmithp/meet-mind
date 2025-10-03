@@ -1,0 +1,2 @@
+npx inngest-cli@1.6.2 dev
+ngrok http --url=seriously-included-bluejay.ngrok-free.app 3000
