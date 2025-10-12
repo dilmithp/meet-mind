@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 export const AgentsListHeader = () => {
     const [filters, setFilters] = useAgentsFilter();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const trpc = useTRPC();
     const queryClient = useQueryClient();
 
@@ -27,12 +28,20 @@ export const AgentsListHeader = () => {
     };
 
     const handleGenerateReport = async () => {
-        const agents = await queryClient.fetchQuery(
-            trpc.agents.getAll.queryOptions({
-                search: filters.search,
-            })
-        );
-        generateAgentsPdf(agents);
+        setIsGenerating(true);
+        try {
+            const agents = await queryClient.fetchQuery(
+                trpc.agents.getAll.queryOptions({
+                    search: filters.search,
+                })
+            );
+            await generateAgentsPdf(agents);
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to generate agents PDF', e);
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     return (
@@ -46,9 +55,9 @@ export const AgentsListHeader = () => {
                             <PlusIcon />
                             New Agent
                         </Button>
-                        <Button onClick={handleGenerateReport} variant="outline">
+                        <Button onClick={handleGenerateReport} variant="outline" disabled={isGenerating}>
                             <FileDownIcon />
-                            Generate report
+                            {isGenerating ? 'Generating...' : 'Generate report'}
                         </Button>
                     </div>
                 </div>
