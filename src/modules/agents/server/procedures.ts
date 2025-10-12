@@ -1,146 +1,158 @@
-import {createTRPCRouter, protectedProcedure} from "@/trpc/init";
-import {db} from "@/db";
-import {agent} from "@/db/schema";
-import {agentsInsertSchema, agentsUpdateSchema} from "@/modules/agents/schemas";
-import {z} from "zod";
-import {and, count, desc, eq, getTableColumns, ilike, sql} from "drizzle-orm";
-import {DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE} from "@/constants";
-import {TRPCError} from "@trpc/server";
+import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
+import { db } from "@/db";
+import { agent, meetings } from "@/db/schema";
+import { agentsInsertSchema, agentsUpdateSchema } from "@/modules/agents/schemas";
+import { z } from "zod";
+import {
+    and,
+    count,
+    desc,
+    eq,
+    getTableColumns,
+    ilike,
+    sql,
+} from "drizzle-orm";
+import {
+    DEFAULT_PAGE,
+    DEFAULT_PAGE_SIZE,
+    MAX_PAGE_SIZE,
+    MIN_PAGE_SIZE,
+} from "@/constants";
+import { TRPCError } from "@trpc/server";
+
+const meetingCountSubQuery = db
+    .select({
+        agentId: meetings.agentId,
+        count: sql<number>`count(*)`.mapWith(Number).as("count"),
+    })
+    .from(meetings)
+    .groupBy(meetings.agentId)
+    .as("meeting_counts");
 
 export const agentsRouter = createTRPCRouter({
     getAll: protectedProcedure
-        .input(z.object({
-            search: z.string().nullish()
-        }))
-        .query(async ({ctx, input}) => {
+        .input(
+            z.object({
+                search: z.string().nullish(),
+            })
+        )
+        .query(async ({ ctx, input }) => {
             const { search } = input;
             return db
                 .select({
                     ...getTableColumns(agent),
-                    meetingCount: sql<number>`1`,
+                    meetingCount: sql<number>`COALESCE(${meetingCountSubQuery.count}, 0)`,
                 })
                 .from(agent)
+                .leftJoin(meetingCountSubQuery, eq(agent.id, meetingCountSubQuery.agentId))
                 .where(
                     and(
                         eq(agent.userId, ctx.auth.user.id),
-                        search ? ilike(agent.name,`%${search}%`) : undefined,
+                        search ? ilike(agent.name, `%${search}%`) : undefined
                     )
                 )
-                .orderBy(desc(agent.createdAt),desc(agent.id));
+                .orderBy(desc(agent.createdAt), desc(agent.id));
         }),
     update: protectedProcedure
         .input(agentsUpdateSchema)
-        .mutation(async ({input, ctx}) => {
+        .mutation(async ({ input, ctx }) => {
             const [updatedAgent] = await db
                 .update(agent)
                 .set(input)
-                .where(
-                    and(
-                        eq(agent.id, input.id),
-                        eq(agent.userId, ctx.auth.user.id),
-                    ),
-                )
+                .where(and(eq(agent.id, input.id), eq(agent.userId, ctx.auth.user.id)))
                 .returning();
-            if(!updatedAgent) {
-                throw new TRPCError({code: 'NOT_FOUND', message: 'Agent not found'});
+            if (!updatedAgent) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Agent not found" });
             }
             return updatedAgent;
-        })
-    ,
+        }),
 
     remove: protectedProcedure
-        .input(z.object({id: z.string()}))
-        .mutation(async ({input, ctx}) => {
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ input, ctx }) => {
             const [removedAgent] = await db
                 .delete(agent)
-                .where(
-                    and(
-                        eq(agent.id, input.id),
-                        eq(agent.userId, ctx.auth.user.id),
-                    ),
-                )
+                .where(and(eq(agent.id, input.id), eq(agent.userId, ctx.auth.user.id)))
                 .returning();
-            if(!removedAgent) {
-                throw new TRPCError({code: 'NOT_FOUND', message: 'Agent not found'});
+            if (!removedAgent) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Agent not found" });
             }
             return removedAgent;
         }),
-    getOne: protectedProcedure.input(z.object({id:z.string()})).query(async ({input, ctx}) => {
-        const [existingAgent] = await db
-            .select({
-                ...getTableColumns(agent),
-                meetingCount: sql<number>`1`,
-            })
-            .from(agent)
-            .where(
-                and(
-                    eq(agent.id, input.id),
-                    eq(agent.userId, ctx.auth.user.id),
-                )
-            );
-        if(!existingAgent) {
-            throw new TRPCError({code: 'NOT_FOUND', message: 'Agent not found'});
-        }
+    getOne: protectedProcedure
+        .input(z.object({ id: z.string() }))
+        .query(async ({ input, ctx }) => {
+            const [existingAgent] = await db
+                .select({
+                    ...getTableColumns(agent),
+                    meetingCount: sql<number>`COALESCE(${meetingCountSubQuery.count}, 0)`,
+                })
+                .from(agent)
+                .leftJoin(meetingCountSubQuery, eq(agent.id, meetingCountSubQuery.agentId))
+                .where(and(eq(agent.id, input.id), eq(agent.userId, ctx.auth.user.id)));
+            if (!existingAgent) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Agent not found" });
+            }
 
-        return existingAgent;
-
-    }),
+            return existingAgent;
+        }),
     getMany: protectedProcedure
-        .input(z.object({
-            page: z.number().default(DEFAULT_PAGE),
-            pageSize: z
-                .number()
-                .min(MIN_PAGE_SIZE)
-                .max(MAX_PAGE_SIZE)
-                .default(DEFAULT_PAGE_SIZE),
-            search: z.string().nullish()
-        }))
-        .query(async ({ctx,input}) => {
-
-            const {page, pageSize, search} = input;
+        .input(
+            z.object({
+                page: z.number().default(DEFAULT_PAGE),
+                pageSize: z
+                    .number()
+                    .min(MIN_PAGE_SIZE)
+                    .max(MAX_PAGE_SIZE)
+                    .default(DEFAULT_PAGE_SIZE),
+                search: z.string().nullish(),
+            })
+        )
+        .query(async ({ ctx, input }) => {
+            const { page, pageSize, search } = input;
             const data = await db
                 .select({
                     ...getTableColumns(agent),
-                    meetingCount: sql<number>`1`,
+                    meetingCount: sql<number>`COALESCE(${meetingCountSubQuery.count}, 0)`,
                 })
                 .from(agent)
+                .leftJoin(meetingCountSubQuery, eq(agent.id, meetingCountSubQuery.agentId))
                 .where(
                     and(
                         eq(agent.userId, ctx.auth.user.id),
-                        search ? ilike(agent.name,`%${search}%`) : undefined,
+                        search ? ilike(agent.name, `%${search}%`) : undefined
                     )
                 )
-                .orderBy(desc(agent.createdAt),desc(agent.id))
+                .orderBy(desc(agent.createdAt), desc(agent.id))
                 .limit(pageSize)
                 .offset((page - 1) * pageSize);
             const [total] = await db
-                .select({count: count()})
+                .select({ count: count() })
                 .from(agent)
                 .where(
                     and(
                         eq(agent.userId, ctx.auth.user.id),
-                        search ? ilike(agent.name,`%${search}%`) : undefined,
+                        search ? ilike(agent.name, `%${search}%`) : undefined
                     )
-                )
+                );
             const totalPages = Math.ceil(total.count / pageSize);
             return {
                 items: data,
                 total: total.count,
                 totalPages,
             };
-
         }),
     create: protectedProcedure
         .input(agentsInsertSchema)
-        .mutation(async ({input, ctx}) => {
+        .mutation(async ({ input, ctx }) => {
             const [createdAgent] = await db
                 .insert(agent)
-                .values(({
+                .values({
                     ...input,
                     userId: ctx.auth.user.id,
-                }))
+                })
                 .returning();
 
             return createdAgent;
         }),
-})
+});
