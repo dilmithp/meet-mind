@@ -1,13 +1,33 @@
-import {createTRPCRouter, premiumProcedure, protectedProcedure} from "@/trpc/init";
+import {createTRPCRouter, protectedProcedure} from "@/trpc/init";
 import {db} from "@/db";
-import {agent, meetings} from "@/db/schema";
+import {agent} from "@/db/schema";
 import {agentsInsertSchema, agentsUpdateSchema} from "@/modules/agents/schemas";
 import {z} from "zod";
-import {and, count, desc, eq, getTableColumns, ilike} from "drizzle-orm";
+import {and, count, desc, eq, getTableColumns, ilike, sql} from "drizzle-orm";
 import {DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE} from "@/constants";
 import {TRPCError} from "@trpc/server";
 
 export const agentsRouter = createTRPCRouter({
+    getAll: protectedProcedure
+        .input(z.object({
+            search: z.string().nullish()
+        }))
+        .query(async ({ctx, input}) => {
+            const { search } = input;
+            return db
+                .select({
+                    ...getTableColumns(agent),
+                    meetingCount: sql<number>`1`,
+                })
+                .from(agent)
+                .where(
+                    and(
+                        eq(agent.userId, ctx.auth.user.id),
+                        search ? ilike(agent.name,`%${search}%`) : undefined,
+                    )
+                )
+                .orderBy(desc(agent.createdAt),desc(agent.id));
+        }),
     update: protectedProcedure
         .input(agentsUpdateSchema)
         .mutation(async ({input, ctx}) => {
@@ -49,7 +69,7 @@ export const agentsRouter = createTRPCRouter({
         const [existingAgent] = await db
             .select({
                 ...getTableColumns(agent),
-                meetingCount: db.$count(meetings, eq(agent.id, meetings.agentId)),
+                meetingCount: sql<number>`1`,
             })
             .from(agent)
             .where(
@@ -81,7 +101,7 @@ export const agentsRouter = createTRPCRouter({
             const data = await db
                 .select({
                     ...getTableColumns(agent),
-                    meetingCount: db.$count(meetings, eq(agent.id, meetings.agentId)),
+                    meetingCount: sql<number>`1`,
                 })
                 .from(agent)
                 .where(
@@ -109,8 +129,8 @@ export const agentsRouter = createTRPCRouter({
                 totalPages,
             };
 
-    }),
-    create: premiumProcedure("agents")
+        }),
+    create: protectedProcedure
         .input(agentsInsertSchema)
         .mutation(async ({input, ctx}) => {
             const [createdAgent] = await db
