@@ -20,12 +20,16 @@ export const MeetingsView = () => {
     }));
     return (
         <div className={'flex-1 pb-4 px-4 md:px-8 flex flex-col gap-y-4'}>
+            {/*list of all meetings*/}
             <DataTable data={data.items} columns={columns}
                        onRowClick={(row) => router.push(`/meetings/${row.id}`)}/>
+
+            {/*managing how data is split into pages and letting the user navigate between them*/}
             <DataPagination
-                page={filters.page}
-                totalPages={data.totalPages}
-                onPageChange={(page) => setFilters({page})}/>
+                page={filters.page}    // Current page number
+                totalPages={data.totalPages}  // Total number of pages available
+                onPageChange={(page) => setFilters({page})}    // Function called when user clicks a new page
+            />
             {data.items.length === 0 && (
                 <EmptyState title={"Create Your first meeting"} description={"Create a meeting to connect with your AI Support Agent"}/>
             )}

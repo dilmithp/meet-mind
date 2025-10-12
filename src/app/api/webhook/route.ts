@@ -54,6 +54,7 @@ export async function POST(req:NextRequest){
 
     const eventType = (payload as Record<string, unknown>)?.type;
 
+    //stream video webhoook handler for different event types
     if(eventType === "call.session_started") {
         const event = payload as CallSessionStartedEvent;
         const meetingId = event.call.custom?.meetingId;

@@ -105,6 +105,7 @@ export const MeetingsListHeader = () => {
 
                 <ScrollArea>
                     <div className="flex items-center gap-x-2 p-1">
+                        {/*filters*/}
                         <MeetingsSearchFilter />
                         <StatusFilter />
                         <AgentIdFilter />

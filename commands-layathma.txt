@@ -1,3 +1,4 @@
 npm run dev
 npx inngest-cli@1.6.2 dev
 ngrok http --url=angelika-sausagelike-insularly.ngrok-free.app 3000
+netstat -ano | findstr :3000

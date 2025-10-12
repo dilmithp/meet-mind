@@ -123,6 +123,8 @@ export const meetingsRouter = createTRPCRouter({
         });
         return token;
     }),
+
+    // Remove meeting
     remove: protectedProcedure
         .input(z.object({id: z.string()}))
         .mutation(async ({input, ctx}) => {
@@ -140,6 +142,9 @@ export const meetingsRouter = createTRPCRouter({
             }
             return removedMeeting;
         }),
+
+    // update meeting
+    //Validates input, writes to database, performs side effects
     update: protectedProcedure
         .input(meetingsUpdateSchema)
         .mutation(async ({input, ctx}) => {
@@ -158,6 +163,9 @@ export const meetingsRouter = createTRPCRouter({
             }
             return updatedMeeting;
         }),
+
+    //create meeting
+    //Validates input, writes to database, performs side effects
     create: premiumProcedure("meetings")
         .input(meetingsInsertSchema)
         .mutation(async ({input, ctx}) => {
@@ -207,6 +215,8 @@ export const meetingsRouter = createTRPCRouter({
             ])
             return createdMeeting;
         }),
+
+    //Read operations - details view
     getOne: protectedProcedure.input(z.object({id:z.string()})).query(async ({input, ctx}) => {
         const [existingMeeting] = await db
             .select({
@@ -229,6 +239,8 @@ export const meetingsRouter = createTRPCRouter({
         return existingMeeting;
 
     }),
+
+    // Read operations - list view
     getMany: protectedProcedure
         .input(z.object({
             page: z.number().default(DEFAULT_PAGE),
