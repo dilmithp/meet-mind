@@ -123,14 +123,16 @@ export const MeetingForm = ({onSuccess, onCancel, initialValues}: MeetingFromPro
         // Extract only the fields that the backend expects
         const { name, agentId } = values;
 
-        if (isEdit) {
+        if (isEdit && initialValues?.id) {
             updateMeetings.mutate({
-                ...values, id: initialValues.id
+                name,
+                agentId,
+                id: initialValues.id
             });
-        }else {
+        } else {
             createMeeting.mutate({ name, agentId });
         }
-    }
+    };
 
     return(
         <>
@@ -266,7 +268,22 @@ export const MeetingForm = ({onSuccess, onCancel, initialValues}: MeetingFromPro
                                         </FormItem>
                                     )}
                                 />
-
+                                <FormField
+                                    name={'duration'}
+                                    control={form.control}
+                                    render={({field}) => (
+                                        <FormItem>
+                                            <FormLabel>Expected Duration</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    placeholder={'e.g: 30 minutes, 1 hour, 2 hours'}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                                 <FormField
                                     name={'participants'}
                                     control={form.control}
