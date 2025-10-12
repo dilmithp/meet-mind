@@ -7,16 +7,14 @@ import {LoadingState} from "@/components/loading-state";
 import {ErrorState} from "@/components/error-state";
 import {columns} from "@/modules/agents/ui/components/columns";
 import {EmptyState} from "@/components/empty-state";
-import {UseAgentsFilter} from "@/modules/agents/hooks/use-agents-filter";
+import {useAgentsFilter} from "@/modules/agents/hooks/use-agents-filter";
 import {DataPagination} from "@/modules/agents/ui/components/data-pagination";
 import {useRouter} from "next/navigation";
 import {DataTable} from "@/components/data-table";
 
-
-
 export const AgentsView = () => {
     const router = useRouter();
-    const [filters, setFilters] = UseAgentsFilter();
+    const [filters, setFilters] = useAgentsFilter();
     const trpc = useTRPC();
     const {data} = useSuspenseQuery(trpc.agents.getMany.queryOptions({
         ...filters,

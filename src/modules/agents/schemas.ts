@@ -2,7 +2,6 @@
 
 import {z} from "zod";
 
-// We REMOVE the 'model' field from here because it's not a backend field.
 export const agentsInsertSchema = z.object({
     name: z.string()
         .min(1, "Name is required")
