@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MoreHorizontal, TrashIcon, EditIcon } from "lucide-react";
 import {
@@ -80,12 +80,24 @@ export const MeetingNotes = ({ meetingId }: MeetingNotesProps) => {
         },
     });
 
+    // Keep the logged in email as default once session loads
+    useEffect(() => {
+        const sessionEmail = session?.user?.email ?? "";
+        if (sessionEmail) {
+            const currentEmail = createForm.getValues("email");
+            if (!currentEmail) {
+                createForm.setValue("email", sessionEmail, { shouldDirty: false });
+            }
+        }
+    }, [session?.user?.email]);
+
     const handleCreateSubmit = (values: NoteFormValues) => {
         createNoteMutation.mutate(values, {
             onSuccess: () => {
                 toast.success("Note added!");
                 void queryClient.invalidateQueries({ queryKey: trpc.meetings.getNotes.queryKey({ meetingId }) });
-                createForm.reset();
+                // Reset but keep the logged-in email prefilled
+                createForm.reset({ meetingId, note: "", email: session?.user?.email ?? "" });
             },
             onError: (error) => {
                 toast.error("Failed to add note", { description: error.message });
@@ -202,8 +214,14 @@ export const MeetingNotes = ({ meetingId }: MeetingNotesProps) => {
                                             <FormItem>
                                                 <FormLabel>Note</FormLabel>
                                                 <FormControl>
-                                                    <Textarea placeholder="Share your thoughts..." {...field} />
+                                                    <Textarea maxLength={500} placeholder="Share your thoughts..." {...field} />
                                                 </FormControl>
+                                                <FormDescription>
+                                                    3–500 characters. Note cannot be empty or only whitespace.
+                                                </FormDescription>
+                                                <div className="text-xs text-muted-foreground text-right" aria-live="polite">
+                                                    {(field.value?.length ?? 0)}/500
+                                                </div>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -244,8 +262,14 @@ export const MeetingNotes = ({ meetingId }: MeetingNotesProps) => {
                                     <FormItem>
                                         <FormLabel>Note</FormLabel>
                                         <FormControl>
-                                            <Textarea placeholder="Edit your note..." {...field} />
+                                            <Textarea maxLength={500} placeholder="Edit your note..." {...field} />
                                         </FormControl>
+                                        <FormDescription>
+                                            3–500 characters. Note cannot be empty or only whitespace.
+                                        </FormDescription>
+                                        <div className="text-xs text-muted-foreground text-right" aria-live="polite">
+                                            {(field.value?.length ?? 0)}/500
+                                        </div>
                                         <FormMessage />
                                     </FormItem>
                                 )}
