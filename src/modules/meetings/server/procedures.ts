@@ -1,4 +1,4 @@
-import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
+import {createTRPCRouter, premiumProcedure, protectedProcedure} from "@/trpc/init";
 import { db } from "@/db";
 // Import the new transcriptNote table
 import { agent, meetings, user, transcriptNote } from "@/db/schema";
@@ -117,10 +117,15 @@ export const meetingsRouter = createTRPCRouter({
                 .catch(()=>{
                     return[]
                 });
+
+            // Get current user info
+            const currentUser = ctx.auth.user;
+
             const speakerIds = [
                 ...new Set (transcript.map((item)=> item.speaker_Id)),
-            ];
-            const userSpeakers = await db
+            ].filter(Boolean);
+
+            const userSpeakers = speakerIds.length > 0 ? await db
                 .select()
                 .from(user)
                 .where(inArray(user.id, speakerIds))
@@ -131,8 +136,9 @@ export const meetingsRouter = createTRPCRouter({
                             user.image ??
                             generateAvatarUri({seed: user.name, variant: "initials"}),
                     }))
-                );
-            const agentSpeakers = await db
+                ) : [];
+
+            const agentSpeakers = speakerIds.length > 0 ? await db
                 .select()
                 .from(agent)
                 .where(inArray(agent.id, speakerIds))
@@ -144,24 +150,72 @@ export const meetingsRouter = createTRPCRouter({
                             variant: "botttsNeutral"
                         }),
                     }))
-                );
+                ) : [];
+
             const speakers = [...userSpeakers, ...agentSpeakers];
+
+            // Get the agent for this meeting
+            const [meetingAgent] = await db
+                .select()
+                .from(agent)
+                .where(eq(agent.id, existingMeeting.agentId));
+
             const transcriptWithSpeakers = transcript.map((item) => {
-                const speaker  = speakers.find(
+                // First try to find speaker by exact ID match
+                const speaker = speakers.find(
                     (speaker) => speaker.id === item.speaker_Id
                 );
-                if(!speaker) {
+
+                if (!speaker) {
+                    // If speaker_Id matches current user ID or is similar, use current user
+                    if (item.speaker_Id === currentUser.id ||
+                        item.speaker_Id?.includes(currentUser.id) ||
+                        !item.speaker_Id ||
+                        item.speaker_Id === 'user' ||
+                        item.speaker_Id === 'participant') {
+                        return {
+                            ...item,
+                            user: {
+                                name: currentUser.name,
+                                image: currentUser.image ?? generateAvatarUri({
+                                    seed: currentUser.name,
+                                    variant: "initials"
+                                })
+                            },
+                        };
+                    }
+
+                    // If speaker_Id suggests it's an agent or matches agent ID, use the meeting's agent
+                    if (meetingAgent && (
+                        item.speaker_Id === meetingAgent.id ||
+                        item.speaker_Id?.includes('agent') ||
+                        item.speaker_Id?.includes('bot') ||
+                        item.speaker_Id === 'assistant')) {
+                        return {
+                            ...item,
+                            user: {
+                                name: meetingAgent.name,
+                                image: generateAvatarUri({
+                                    seed: meetingAgent.name,
+                                    variant: "botttsNeutral"
+                                })
+                            },
+                        };
+                    }
+
+                    // For any unidentified speaker, default to current user since they own the meeting
                     return {
                         ...item,
                         user: {
-                            name: "Unknown",
-                            image: generateAvatarUri({
-                                seed: "Unknown",
-                                variant: "initials",
+                            name: currentUser.name,
+                            image: currentUser.image ?? generateAvatarUri({
+                                seed: currentUser.name,
+                                variant: "initials"
                             })
                         },
                     };
                 }
+
                 return {
                     ...item,
                     user: {
@@ -241,7 +295,7 @@ export const meetingsRouter = createTRPCRouter({
             return updatedMeeting;
         }),
 
-    create: protectedProcedure
+    create: premiumProcedure("meetings")
         .input(meetingsInsertSchema)
         .mutation(async ({input, ctx}) => {
             const [createdMeeting] = await db
